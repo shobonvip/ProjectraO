@@ -1,55 +1,42 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
-// データベース
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
 }
 
-
-// ユーザー情報（traP OAuthから連携される情報）
 model User {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  role        Role         @default(USER)
-  createdAt   DateTime     @default(now())
-  submissions Submission[]
-  permittedProblems Problem[]       @relation("ProblemPermissions")
+  id                String       @id @default(uuid())
+  name              String       @unique
+  role              Role         @default(USER)
+  createdAt         DateTime     @default(now())
+  submissions       Submission[]
+  permittedProblems Problem[]    @relation("ProblemPermissions")
 }
 
-// コンテスト情報
 model Contest {
   id              String           @id @default(uuid())
   title           String
   description     String?
   startTime       DateTime
   endTime         DateTime
-  contestProblems ContestProblem[] 
+  contestProblems ContestProblem[]
 }
 
-// コンテストと問題を紐づけ、その際の「配点」を保持する中間テーブル
 model ContestProblem {
   contestId String
-  contest   Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
-  
   problemId String
-  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  
-  points    Int     @default(1) // このコンテストにおけるこの問題の配点
+  points    Int     @default(1)
   label     String
   order     Int     @default(0)
+  contest   Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  problem   Problem @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@id([contestId, problemId])
+  @@index([problemId], map: "ContestProblem_problemId_fkey")
 }
-
-// 問題情報（コンテストや配点に依存しない、純粋な問題データ）
 
 model Problem {
   id              String           @id @default(uuid())
@@ -62,19 +49,18 @@ model Problem {
   permittedUsers  User[]           @relation("ProblemPermissions")
 }
 
-// 提出データ
 model Submission {
   id         String           @id @default(uuid())
   userId     String
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   problemId  String
-  problem    Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
   userAnswer String
-  status     SubmissionStatus // AC (正解) または WA (不正解)
+  status     SubmissionStatus
   createdAt  DateTime         @default(now())
+  problem    Problem          @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // レートリミット（連投防止）のクエリを劇的に高速化するためのインデックス
   @@index([userId, createdAt])
+  @@index([problemId], map: "Submission_problemId_fkey")
 }
 
 enum SubmissionStatus {

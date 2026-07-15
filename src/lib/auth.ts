@@ -1,12 +1,19 @@
 // src/lib/auth.ts
 import { NextAuthOptions } from "next-auth";
-import { PrismaClient } from "@prisma-client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/generated/prisma";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaMariaDb({
+  host: process.env.NS_MARIADB_HOSTNAME!,
+  port: Number(process.env.NS_MARIADB_PORT),
+  user: process.env.NS_MARIADB_USER!,
+  password: process.env.NS_MARIADB_PASSWORD!,
+  database: process.env.NS_MARIADB_DATABASE!,
+});
+
 const prisma = new PrismaClient({ adapter });
+
+export { prisma };
 
 // 先ほどまで route.ts に書いていた authOptions を丸ごとこちらに移動！
 export const authOptions: NextAuthOptions = {
@@ -58,3 +65,5 @@ export const authOptions: NextAuthOptions = {
   },
   session: { strategy: "jwt" },
 };
+
+

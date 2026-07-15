@@ -12,12 +12,23 @@ npx prisma db push
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+const dbConfig = {
+  host: process.env.NS_MARIADB_HOSTNAME || 'localhost',
+  port: process.env.NS_MARIADB_PORT || 3306,
+  user: process.env.NS_MARIADB_USER, // ※ユーザー名も変数化推奨
+  password: process.env.NS_MARIADB_PASSWORD,
+  database: process.env.NS_MARIADB_DATABASE,
+};
+
+// 接続先URLが必要な場合はここで組み立てる
+const databaseUrl = `mysql://${dbConfig.user}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`;
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: databaseUrl,
   },
 });

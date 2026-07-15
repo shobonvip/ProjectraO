@@ -1,13 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma-client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { prisma } from "@/lib/auth"; // これで統一！
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
 
 // レートリミット（連投制限）の秒数
 const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000;

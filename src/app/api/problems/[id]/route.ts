@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma-client";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -12,106 +14,78 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-	const resolvedParams = await params;
+    const resolvedParams = await params;
     const problemId = resolvedParams.id;
-	const currentUserId = "test-user-id"; 
 
-    // 1. ユーザー情報を取得してロール（ADMINかどうか）を確認
-    const user = await prisma.user.findUnique({
-      where: { id: currentUserId },
-    });
-    
-    const isAdmin = user?.role === "ADMIN";
+    // 1. セッションの取得（ログインしていない場合は null になる）
+    const session = await getServerSession(authOptions);
+    const currentUserId = session?.user?.id; // ゲストなら undefined
 
-    // 2. 問題データと、閲覧許可されているユーザー一覧を一緒に取得
+    // 2. 問題データの取得
     const problem = await prisma.problem.findUnique({
       where: { id: problemId },
-      select: {
-        id: true,
-        title: true,
-        statement: true,
-		isPublished: true,
-		answer: true,
-        permittedUsers: {
-          select: {
-            id: true,
-          }
-        },
-        contestProblems: {
-          select: {
-            points: true,
-            label: true,
-          }
-        }
-      }
+      include: { permittedUsers: { select: { id: true } }, contestProblems: true }
     });
 
-    if (!problem) {
-      return NextResponse.json({
-		error: "問題が見つかりません。"
-	  }, { status: 404 });
-    }
-    
-	let hasAccess = false;
-    const isPermitted = problem.permittedUsers.some(u => u.id === currentUserId);
-    
-	if (isAdmin) {
-      // ルール①: 管理者なら常にアクセス可能
-      hasAccess = true;
-    } else if (problem.isPublished) {
-      // ルール②: 公開されている問題なら誰でもアクセス可能
-      hasAccess = true;
-    } else if (isPermitted) {
-      hasAccess = true;
+    if (!problem) return NextResponse.json({ error: "見つかりません" }, { status: 404 });
+
+    // 3. ユーザー権限の確認（ゲストの場合は自動的に false になる）
+    let isAdmin = false;
+    let isPermitted = false;
+
+    if (currentUserId) {
+      const user = await prisma.user.findUnique({ where: { id: currentUserId } });
+      isAdmin = user?.role === "ADMIN";
+      isPermitted = problem.permittedUsers.some((u) => u.id === currentUserId);
     }
 
-    // アクセス権がない場合は403エラーを返す
+    // 4. 【重要】アクセス権のチェック
+    // 「公開されている」or「管理者」or「作問者」なら閲覧OK！
+    const hasAccess = problem.isPublished || isAdmin || isPermitted;
+
     if (!hasAccess) {
-      return NextResponse.json(
-        { error: "この問題を閲覧する権限がありません（非公開問題）。" },
-        { status: 403 }
-      );
+      // 非公開問題の場合の処理
+      if (!currentUserId) {
+        return NextResponse.json({ error: "非公開問題を閲覧するにはログインが必要です。" }, { status: 401 });
+      } else {
+        return NextResponse.json({ error: "この問題を閲覧する権限がありません。" }, { status: 403 });
+      }
     }
 
-    const contestProblem = problem.contestProblems[0];
+    // 5. 正解(AC)状況のチェック（ゲストは未ログインなので当然 false）
+    let hasAC = false;
+    if (currentUserId) {
+      const acSubmission = await prisma.submission.findFirst({
+        where: { userId: currentUserId, problemId: problemId, status: "AC" },
+      });
+      hasAC = !!acSubmission;
+    }
 
-	const acSubmission = await prisma.submission.findFirst({
-      where: { userId: currentUserId, problemId: problemId, status: "AC" },
-    });
-	const hasAC = !!acSubmission;
-
-	const solvers = await prisma.submission.groupBy({
+    // 6. 正解者数の集計（そのまま）
+    const solvers = await prisma.submission.groupBy({
       by: ['userId'],
       where: {
         problemId: problemId,
         status: "AC",
-        user: {
-          role: "USER", // ADMINを除外
-          permittedProblems: {
-			none: { id: problemId }
-		  } // この問題の作問者を除外
-        }
+        user: { role: "USER", permittedProblems: { none: { id: problemId } } }
       }
     });
+    const acCount = solvers.length;
 
-	const acCount = solvers.length;
-
-    // 4. 安全なデータのみ返却
+    // 7. データの返却（ゲストには answer を絶対に送らない）
     return NextResponse.json({
       id: problem.id,
       title: problem.title,
       statement: problem.statement,
-	  isPublished: problem.isPublished,
-	  acCount: acCount,
-	  hasAC: hasAC,
-      points: contestProblem?.points ?? 0,
-      label: contestProblem?.label ?? "",
-	  answer: (hasAC || isAdmin || isPermitted) ? problem.answer : undefined,
+      isPublished: problem.isPublished,
+      acCount: acCount,
+      hasAC: hasAC,
+      // 答えは「AC済み」か「管理者・作問者」にだけ送る
+      answer: (hasAC || isAdmin || isPermitted) ? problem.answer : undefined,
     });
-	
 
   } catch (error) {
     console.error("Fetch Problem Error:", error);
-    return NextResponse.json({ error: "サーバーエラーが発生しました。" }, { status: 500 });
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

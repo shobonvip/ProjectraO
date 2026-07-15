@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma-client";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
-import crypto from "crypto";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -24,8 +25,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // ★ 暫定ユーザーID
-    const userId = "test-user-id"; 
+    // 👇 ここを変更！
+    const session = await getServerSession(authOptions);
+    
+    // ログインしていなければ提出を弾く
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
+    }
+
+    // 本物のアカウントで提出！
+    const userId = session.user.id;
 
     // 2. 問題ごとのスライディングウィンドウ・レートリミットチェック
     const timeWindowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);

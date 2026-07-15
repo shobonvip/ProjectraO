@@ -9,7 +9,8 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 // レートリミット（連投制限）の秒数
-const RATE_LIMIT_SECONDS = 5;
+const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000;
+const MAX_SUBMISSIONS = 5; 
 
 export async function POST(request: Request) {
   try {
@@ -23,36 +24,44 @@ export async function POST(request: Request) {
       );
     }
 
-    // ★ 暫定的なモックユーザーID（後で OAuth のセッションIDに書き換えます）
-    // テスト時は、あらかじめデータベース（Prisma Studio等）に id: "test-user-id" の User を作っておいてください。
-    const userId = "test-user-id";
+    // ★ 暫定ユーザーID
+    const userId = "test-user-id"; 
 
-    // 2. レートリミットチェック（複合インデックスにより超高速に処理されます）
-    const lastSubmission = await prisma.submission.findFirst({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
+    // 2. 問題ごとのスライディングウィンドウ・レートリミットチェック
+    const timeWindowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+
+    // 直近3分以内の「このユーザー」の「この問題」に対する提出を取得（古い順）
+    const recentSubmissions = await prisma.submission.findMany({
+      where: { 
+        userId: userId,
+        problemId: problemId,      // ← ここが重要！問題ごとに独立させます
+        createdAt: {
+          gte: timeWindowStart,    // 3分前以降のデータのみに絞り込む
+        }
+      },
+      orderBy: { createdAt: "asc" }, // 取得した中で一番古いものを配列の先頭にする
     });
 
-    if (lastSubmission) {
-      const secondsSinceLast = (Date.now() - new Date(lastSubmission.createdAt).getTime()) / 1000;
-      if (secondsSinceLast < RATE_LIMIT_SECONDS) {
-        const waitTime = Math.ceil(RATE_LIMIT_SECONDS - secondsSinceLast);
-        return NextResponse.json(
-          { error: `連投制限中です。あと ${waitTime} 秒待ってください。` },
-          { status: 429 }
-        );
-      }
+    if (recentSubmissions.length >= MAX_SUBMISSIONS) {
+      // 5回以上の提出があった場合、一番古い提出が「3分の枠」から押し出されるまで待機させる
+      const oldestInWindow = recentSubmissions[0].createdAt.getTime();
+      const unlockTime = oldestInWindow + RATE_LIMIT_WINDOW_MS;
+      const waitTimeSec = Math.ceil((unlockTime - Date.now()) / 1000);
+
+      // UXのため、分と秒に変換して親切なメッセージにする
+      const waitMinutes = Math.floor(waitTimeSec / 60);
+      const waitRemainingSec = waitTimeSec % 60;
+      const timeString = waitMinutes > 0 
+        ? `${waitMinutes}分${waitRemainingSec}秒` 
+        : `${waitRemainingSec}秒`;
+
+      return NextResponse.json(
+        { error: `この問題への提出は2分間に3回までです。あと ${timeString} 待ってください。` },
+        { status: 429 }
+      );
     }
 
     // 3. 問題の存在確認と正解ハッシュの取得
-
-	// ★ デバッグ用：今DBに登録されているすべての問題をコンソールに出力する
-    const allProblems = await prisma.problem.findMany();
-    console.log("-----------------------------------------");
-    console.log("【デバッグ】リクエストされた problemId:", problemId);
-    console.log("【デバッグ】現在DBに登録されている問題のID一覧:", allProblems.map(p => p.id));
-    console.log("-----------------------------------------");
-
     const problem = await prisma.problem.findUnique({
       where: { id: problemId },
     });
@@ -67,12 +76,7 @@ export async function POST(request: Request) {
     // 4. 提出された解答をハッシュ化して比較 (SHA-256)
     // ユーザーが入力した文字列の空白や改行をトリムして比較するのが親切です
     const normalizedAnswer = userAnswer.toString().trim();
-    const inputHash = crypto
-      .createHash("sha256")
-      .update(normalizedAnswer)
-      .digest("hex");
-
-    const isCorrect = inputHash === problem.answerHash;
+    const isCorrect = normalizedAnswer === problem.answer;
     const status = isCorrect ? "AC" : "WA";
 
     // 5. 提出レコードをデータベースに保存

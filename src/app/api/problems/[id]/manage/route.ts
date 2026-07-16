@@ -86,12 +86,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });
     }
 
-    const permCheck = await checkManagePermission(params.id, session.user.name);
+    const permCheck = await checkManagePermission(id, session.user.name);
     if (permCheck.error) {
       return NextResponse.json({ error: permCheck.error }, { status: permCheck.status });
     }
 
-    await prisma.problem.delete({ where: { id: params.id } });
+    await prisma.problem.delete({ where: { id: id } });
     return NextResponse.json({ message: "問題を削除しました" }, { status: 200 });
   } catch (error: any) {
     console.error("Manage DELETE Error:", error);

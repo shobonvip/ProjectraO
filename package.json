@@ -8,9 +8,9 @@
 
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "prisma generate && npx prisma db push && NODE_ENV=production next build",
+    "build": "prisma generate && NODE_ENV=production next build",
     "postinstall": "prisma generate",
-    "start": "next start -H 0.0.0.0",
+    "start": "npx prisma db push && next start",
     "lint": "eslint"
   },
   "dependencies": {

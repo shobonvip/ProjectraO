@@ -78,8 +78,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 // 🗑️ 問題の削除 (DELETE)
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params; // 👈 ここで await
     const session = await getServerSession(authOptions);
     if (!session || !session.user || !session.user.name) {
       return NextResponse.json({ error: "ログインが必要です" }, { status: 401 });

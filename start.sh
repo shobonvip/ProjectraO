@@ -6,5 +6,6 @@ export HOSTNAME="0.0.0.0"
 # 2. Next.js / Prisma Client 実行用に DATABASE_URL を OS レベルで合成
 export DATABASE_URL="mysql://${NS_MARIADB_USER}:${NS_MARIADB_PASSWORD}@${NS_MARIADB_HOSTNAME}:${NS_MARIADB_PORT}/${NS_MARIADB_DATABASE}"
 
+npx prisma db push
 # 3. Next.js を起動
 exec npx next start

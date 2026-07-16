@@ -3,6 +3,7 @@
 import React, { useState, useEffect, startTransition } from "react";
 import { useParams } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
+import Link from "next/link"; // 👈 編集ページへの遷移のために追加
 
 interface ProblemData {
   id: string;
@@ -11,6 +12,8 @@ interface ProblemData {
   isPublished: boolean;
   acCount: number;
   hasAC: boolean;
+  canEdit?: boolean;       // 追加
+  authorNames?: string[];  // 追加
   answer?: string; // ACまたは管理者のみ取得可能
 }
 
@@ -152,40 +155,6 @@ export default function ProblemPage() {
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto space-y-8">
-        
-        <div className="flex justify-end items-center bg-transparent pb-2">
-          {sessionStatus === "loading" ? (
-            <div className="text-sm text-slate-400 font-medium animate-pulse">
-              認証情報を確認中...
-            </div>
-          ) : session ? (
-            <div className="flex items-center space-x-4 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-              <div className="text-sm">
-                <span className="text-slate-500 mr-2">ログイン中:</span>
-                <span className="font-bold text-slate-800">{session.user?.name}</span>
-                <span className="text-xs text-slate-400 ml-1">(@{session.user?.id})</span>
-              </div>
-              <div className="w-px h-4 bg-slate-200"></div>
-              <button
-                onClick={() => signOut()}
-                className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
-              >
-                ログアウト
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-4 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-              <span className="text-sm font-medium text-slate-500">ゲストユーザー</span>
-              <button
-                onClick={() => signIn("traq")}
-                className="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-1.5 rounded-full transition-colors shadow-sm"
-              >
-                traQでログイン
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* 問題詳細カード */}
         {problem && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8 space-y-6">
@@ -203,6 +172,14 @@ export default function ProblemPage() {
                 <h1 className="text-2xl font-bold text-slate-800 mt-2">
                   {problem.title}
                 </h1>
+                {/* 作問者(Writer)リストの表示 */}
+                {problem.authorNames && problem.authorNames.length > 0 && (
+                  <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-[10px]">✍️</span>
+                    <span className="font-medium">Writer:</span> 
+                    <span className="text-slate-500">{problem.authorNames.join(", ")}</span>
+                  </div>
+                )}
               </div>
               
               <div className="text-right">
@@ -213,6 +190,18 @@ export default function ProblemPage() {
                   <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md mt-1 inline-block">
                     ✓ 正解済み
                   </span>
+                )}
+
+                <span className="text-xs text-slate-400 font-mono block mt-1">ID: {problem.id}</span>
+                
+                {/* 追加: 編集ボタン（権限がある場合のみ表示） */}
+                {problem.canEdit && (
+                  <Link
+                    href={`/problem_manager/problems/${problem.id}/manage`}
+                    className="mt-2 inline-flex items-center justify-center px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                  >
+                    編集する
+                  </Link>
                 )}
               </div>
               <span className="text-xs text-slate-400 font-mono">ID: {problem.id}</span>

@@ -10,6 +10,8 @@ interface ProblemListItem {
   isPublished: boolean;
   acCount: number;
   hasAC: boolean;
+  canEdit?: boolean;
+  authorName?: string;
 }
 
 export default function ProblemsListPage() {
@@ -21,7 +23,6 @@ export default function ProblemsListPage() {
   useEffect(() => {
     const fetchProblems = async () => {
       try {
-        // ※ 実際のAPIパスに合わせて調整してください
         const response = await fetch("/api/problems");
         if (!response.ok) throw new Error("問題一覧の取得に失敗しました");
         const data = await response.json();
@@ -35,7 +36,7 @@ export default function ProblemsListPage() {
     };
 
     fetchProblems();
-  }, [sessionStatus]); // セッション状態が変わったら再フェッチ（AC状態更新のため）
+  }, [sessionStatus]);
 
   if (loading) {
     return (
@@ -68,12 +69,24 @@ export default function ProblemsListPage() {
               全 {problems.length} 問中、 {problems.filter(p => p.hasAC).length} 問正解
             </p>
           </div>
-          <Link
-            href="/"
-            className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
-          >
-            ← トップへ戻る
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="text-sm font-semibold text-slate-500 hover:text-indigo-600 transition-colors"
+            >
+              ← トップへ戻る
+            </Link>
+
+            {/* 📝 追加: ログイン中のみ表示される新規作成ボタン */}
+            {session && (
+              <Link
+                href="/new_problems/"
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-sm hover:shadow"
+              >
+                ＋ 新規問題作成
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* 問題一覧テーブル */}
@@ -84,14 +97,16 @@ export default function ProblemsListPage() {
                 <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 pl-6 pr-4 w-16 text-center">状態</th>
                   <th className="py-4 px-4 w-24">ID</th>
+                  <th className="py-4 px-4 w-32">作問者</th> {/* 👈 ヘッダーを追加 */}
                   <th className="py-4 px-4">問題名</th>
                   <th className="py-4 px-6 text-right w-32">正解者数</th>
+                  <th className="py-4 px-6 text-center w-24">操作</th> {/* 👈 追加 */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
                 {problems.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-slate-400">
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
                       公開されている問題がありません。
                     </td>
                   </tr>
@@ -114,12 +129,24 @@ export default function ProblemsListPage() {
                         )}
                       </td>
                       
+
+
                       {/* ID */}
                       <td className="py-4 px-4 font-mono font-medium text-slate-500">
                         {problem.id}
                       </td>
-                      
-                      {/* 問題名（リンク） */}
+
+                      {/* 作問者 (Writer) の表示 */}
+                      <td className="py-4 px-4 text-slate-600 font-medium">
+                        {problem.authorName ? (
+                          <span className="flex items-center gap-1.5">
+                            {problem.authorName}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                      {/* 問題名 */}
                       <td className="py-4 px-4 font-semibold">
                         <Link 
                           href={`/problems/${problem.id}`}
@@ -137,6 +164,18 @@ export default function ProblemsListPage() {
                       {/* 正解者数 */}
                       <td className="py-4 px-6 text-right font-mono text-slate-600">
                         {problem.acCount}
+                      </td>
+
+                      {/* 操作 (編集ボタン) */}
+                      <td className="py-4 px-6 text-center">
+                        {problem.canEdit && (
+                          <Link
+                            href={`/problems/${problem.id}/manage`}
+                            className="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-md text-xs font-bold transition-colors shadow-sm"
+                          >
+                            編集
+                          </Link>
+                        )}
                       </td>
                     </tr>
                   ))

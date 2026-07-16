@@ -66,6 +66,7 @@ export async function GET(
       }
     });
     const acCount = solvers.length;
+    const canEdit = isAdmin || isPermitted;
 
     // 7. データの返却（ゲストには answer を絶対に送らない）
     return NextResponse.json({
@@ -75,6 +76,8 @@ export async function GET(
       isPublished: problem.isPublished,
       acCount: acCount,
       hasAC: hasAC,
+      canEdit: canEdit,
+      authorNames: problem.permittedUsers.map((u) => u.id),
       // 答えは「AC済み」か「管理者・作問者」にだけ送る
       answer: (hasAC || isAdmin || isPermitted) ? problem.answer : undefined,
     });
@@ -84,3 +87,4 @@ export async function GET(
     return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }
+

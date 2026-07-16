@@ -197,14 +197,13 @@ export default function ProblemPage() {
                 {/* 追加: 編集ボタン（権限がある場合のみ表示） */}
                 {problem.canEdit && (
                   <Link
-                    href={`/problem_manager/problems/${problem.id}/manage`}
+                    href={`/problems/${problem.id}/manage`}
                     className="mt-2 inline-flex items-center justify-center px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-colors shadow-sm"
                   >
                     編集する
                   </Link>
                 )}
               </div>
-              <span className="text-xs text-slate-400 font-mono">ID: {problem.id}</span>
             </div>
 
 

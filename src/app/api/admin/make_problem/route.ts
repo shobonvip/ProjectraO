@@ -46,8 +46,14 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("Make Problem Error:", error);
+	// 🚨 デバッグ用の特別対応（原因が分かったら必ず消してください！）
     return NextResponse.json(
-      { error: "サーバーエラーが発生しました。" }, 
+      {
+        error: "サーバーエラーが発生しました。",
+        debug_message: error.message,         // エラーの直接的な原因（一番重要！）
+        debug_stack: error.stack,             // コードのどこで落ちたかの詳細な経路
+        debug_full: String(error)             // エラーオブジェクト全体の文字列化
+      },
       { status: 500 }
     );
   }

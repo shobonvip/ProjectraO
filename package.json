@@ -10,7 +10,7 @@
     "dev": "next dev --turbo",
     "build": "prisma generate && NODE_ENV=production next build",
     "postinstall": "prisma generate",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0",
     "lint": "eslint"
   },
   "dependencies": {

@@ -10,6 +10,14 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css'; // 🚨 超重要: KaTeXのCSSをインポートしないと崩れます！
 
+// 既存のインターフェースの下に追加
+interface ForumPost {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: { name: string; role: string };
+}
+
 interface ProblemData {
   id: string;
   title: string;
@@ -37,7 +45,7 @@ export default function ProblemPage() {
   // 取得した問題データを管理するステート
   const [problem, setProblem] = useState<ProblemData | null>(null);
   const [solvers, setSolvers] = useState<Solver[]>([]);
-  const [activeTab, setActiveTab] = useState<"problem" | "solvers">("problem"); 
+  const [activeTab, setActiveTab] = useState<"problem" | "solvers" | "forum">("problem"); 
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
   const [solversLoading, setSolversLoading] = useState(false);
@@ -45,6 +53,15 @@ export default function ProblemPage() {
   const [userAnswer, setUserAnswer] = useState("");
   const [status, setStatus] = useState<"IDLE" | "SUBMITTING" | "AC" | "WA" | "ERROR">("IDLE");
   const [errorMessage, setErrorMessage] = useState("");
+
+  // フォーラム用のステートを追加
+  const [forumPosts, setForumPosts] = useState<ForumPost[]>([]);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [isPosting, setIsPosting] = useState(false);
+
+  // 🚨 編集用のステートを追加
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   // 1. ページロード時にAPIから問題をセキュアに取得
   useEffect(() => {
@@ -94,6 +111,23 @@ export default function ProblemPage() {
     fetchSolvers();
   }, [activeTab, problemId]);
 
+  useEffect(() => {
+    if (activeTab !== "forum" || !problemId) return;
+
+    const fetchForumPosts = async () => {
+      try {
+        const response = await fetch(`/api/problems/${problemId}/forum`);
+        if (response.ok) {
+          const data = await response.json();
+          setForumPosts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch forum posts:", err);
+      }
+    };
+    fetchForumPosts();
+  }, [activeTab, problemId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userAnswer.trim() || !problem) return;
@@ -131,6 +165,77 @@ export default function ProblemPage() {
       console.error(error);
       setStatus("ERROR");
       setErrorMessage("サーバーとの通信に失敗しました。");
+    }
+  };
+
+  const handlePostForum = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPostContent.trim()) return;
+    setIsPosting(true);
+
+    try {
+      const response = await fetch(`/api/problems/${problemId}/forum`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newPostContent }),
+      });
+      if (response.ok) {
+        const { post } = await response.json();
+        setForumPosts([...forumPosts, post]); // 画面に即時反映
+        setNewPostContent(""); // 入力欄をクリア
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  // 📝 編集モードを開始する
+  const startEditing = (post: ForumPost) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content);
+  };
+
+  // 📝 編集内容を保存する
+  const handleUpdatePost = async (postId: string) => {
+    if (!editContent.trim()) return;
+    try {
+      const response = await fetch(`/api/problems/${problemId}/forum/${postId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editContent }),
+      });
+      if (response.ok) {
+        const { post } = await response.json();
+        // 更新した投稿をリストに反映
+        setForumPosts(forumPosts.map(p => p.id === postId ? post : p));
+        setEditingPostId(null);
+      } else {
+        const data = await response.json();
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // 🗑️ 投稿を削除する
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("この投稿を削除しますか？\n※この操作は取り消せません。")) return;
+    try {
+      const response = await fetch(`/api/problems/${problemId}/forum/${postId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        // 削除した投稿をリストから除外
+        setForumPosts(forumPosts.filter(p => p.id !== postId));
+      } else {
+        const data = await response.json();
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -235,6 +340,19 @@ export default function ProblemPage() {
               >
                 正解者一覧 ({problem.acCount})
               </button>
+              {/* AC済み、または編集権限がある場合のみフォーラムタブを表示！ */}
+              {(problem.hasAC || problem.canEdit) && (
+                <button
+                  onClick={() => startTransition(() => setActiveTab("forum"))}
+                  className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all ${
+                    activeTab === "forum"
+                      ? "border-indigo-600 text-indigo-600"
+                      : "border-transparent text-slate-400 hover:text-slate-600"
+                  }`}
+                >
+                  🔒 フォーラム
+                </button>
+              )}
             </div>
            </div>
 
@@ -396,9 +514,134 @@ export default function ProblemPage() {
                 </table>
               </div>
             )}
+
+            
           </div>
         )}
 
+        {/* フォーラムコンテンツ */}{/* フォーラムコンテンツ */}
+        {activeTab === "forum" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+              <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <span>💬</span> 正解者専用フォーラム
+              </h2>
+              
+              {/* 投稿一覧 */}
+              <div className="space-y-6 mb-8">
+                {forumPosts.length === 0 ? (
+                  <p className="text-slate-400 text-center py-8 text-sm">まだ投稿がありません。解法や感想を共有してみましょう！</p>
+                ) : (
+                  forumPosts.map(post => {
+                    // 投稿者が自分か、または問題の管理権限（ADMIN/Writer）があるか
+                    const isMyPost = session?.user?.name === post.user.name;
+                    const canManage = isMyPost || problem?.canEdit;
+
+                    return (
+                      <div key={post.id} className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 group">
+                        <div className="flex items-center gap-2 mb-3 border-b border-slate-200/50 pb-2">
+                          <span className="font-bold text-slate-700 text-sm">{post.user.name}</span>
+                          {post.user.role === "ADMIN" && (
+                            <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-1.5 py-0.5 rounded">ADMIN</span>
+                          )}
+                          <span className="text-xs text-slate-400 ml-auto">
+                            {new Date(post.createdAt).toLocaleString("ja-JP")}
+                          </span>
+                          
+                          {/* 編集・削除ボタン（権限がある場合のみ表示） */}
+                          {canManage && editingPostId !== post.id && (
+                            <div className="flex gap-2 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => startEditing(post)} className="text-xs text-indigo-600 hover:underline">編集</button>
+                              <button onClick={() => handleDeletePost(post.id)} className="text-xs text-rose-600 hover:underline">削除</button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* 📝 編集モード or 通常表示 */}
+                        {editingPostId === post.id ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              rows={4}
+                              className="w-full px-4 py-3 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm text-slate-900 bg-white"
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button onClick={() => setEditingPostId(null)} className="px-4 py-1.5 bg-slate-200 text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-300">キャンセル</button>
+                              <button onClick={() => handleUpdatePost(post.id)} className="px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700">保存</button>
+                            </div>
+                            
+                            {/* 編集プレビュー */}
+                            <div className="mt-4 pt-4 border-t border-slate-200">
+                              <span className="text-xs font-bold text-slate-400 block mb-2">プレビュー</span>
+                              <div className="prose prose-sm max-w-none text-slate-600 p-4 bg-white rounded-lg border border-slate-100">
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{editContent}</ReactMarkdown>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="prose prose-sm max-w-none text-slate-600">
+                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                              {post.content}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* 新規投稿フォーム (リアルタイムプレビュー付き) */}
+              <form onSubmit={handlePostForum} className="mt-6 border-t border-slate-100 pt-6">
+                <label className="block text-sm font-semibold text-slate-700 mb-4">
+                  新しい投稿を書く (Markdown / LaTeX 対応)
+                </label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* エディタ側 */}
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-500 mb-1">エディタ</span>
+                    <textarea
+                      value={newPostContent}
+                      onChange={(e) => setNewPostContent(e.target.value)}
+                      rows={6}
+                      className="w-full flex-grow px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-slate-900 bg-white placeholder:text-slate-400 font-mono text-sm"
+                      placeholder="解法のアプローチや感想を書いてみましょう！&#13;&#10;コードブロックや $O(N \log N)$ などの数式も使えます。"
+                      required
+                    />
+                  </div>
+                  
+                  {/* プレビュー側 */}
+                  <div className="flex flex-col h-full">
+                    <span className="text-xs font-bold text-indigo-500 mb-1">ライブプレビュー</span>
+                    <div className="flex-grow w-full border border-indigo-100 bg-indigo-50/30 rounded-xl p-4 overflow-y-auto">
+                      <div className="prose prose-sm max-w-none text-slate-700">
+                        {newPostContent ? (
+                          <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {newPostContent}
+                          </ReactMarkdown>
+                        ) : (
+                          <span className="text-slate-400 italic">ここにプレビューが表示されます...</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <button
+                    type="submit"
+                    disabled={isPosting || !newPostContent.trim()}
+                    className="px-8 py-3 bg-slate-800 text-white text-sm font-bold rounded-xl shadow-md hover:bg-slate-700 disabled:bg-slate-300 transition-all"
+                  >
+                    {isPosting ? "送信中..." : "投稿する"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

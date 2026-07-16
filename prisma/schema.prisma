@@ -14,6 +14,7 @@ model User {
   createdAt         DateTime     @default(now())
   submissions       Submission[]
   permittedProblems Problem[]    @relation("ProblemPermissions")
+  forumPosts        ForumPost[]
 }
 
 model Contest {
@@ -47,6 +48,7 @@ model Problem {
   contestProblems ContestProblem[]
   submissions     Submission[]
   permittedUsers  User[]           @relation("ProblemPermissions")
+  forumPosts      ForumPost[]
 }
 
 model Submission {
@@ -73,4 +75,16 @@ enum SubmissionStatus {
 enum Role {
   USER
   ADMIN
+}
+
+model ForumPost {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  
+  problem   Problem  @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  problemId String
 }

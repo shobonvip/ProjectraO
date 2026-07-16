@@ -5,7 +5,6 @@
   "engines": {
     "node": "22.x"
   },
-
   "scripts": {
     "dev": "next dev --turbo",
     "build": "prisma generate && NODE_ENV=production next build",
@@ -20,11 +19,15 @@
     "next-auth": "^4.24.14",
     "pg": "^8.22.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@prisma/config": "^7.8.0",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
     "@types/react": "^19",

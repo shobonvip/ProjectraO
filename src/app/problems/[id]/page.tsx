@@ -5,6 +5,11 @@ import { useParams } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Link from "next/link"; // 👈 編集ページへの遷移のために追加
 
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css'; // 🚨 超重要: KaTeXのCSSをインポートしないと崩れます！
+
 interface ProblemData {
   id: string;
   title: string;
@@ -240,11 +245,17 @@ export default function ProblemPage() {
         
         {activeTab === "problem" && problem && (
           <div className="space-y-6">
-            {/* 問題文カード */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
-              <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
-                {problem.statement}
-              </p>
+            {/* 問題文カード */}
+              <div className="prose max-w-none text-slate-700 leading-relaxed">
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {problem.statement}
+                </ReactMarkdown>
+              </div>
+
             </div>
 
             {/* 解答・正解表示セクション */}

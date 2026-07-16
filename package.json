@@ -2,6 +2,10 @@
   "name": "projectrao",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
+
   "scripts": {
     "dev": "next dev --turbo",
     "build": "prisma generate && next build",
@@ -26,7 +30,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "15.5.20",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"

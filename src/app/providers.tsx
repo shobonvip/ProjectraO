@@ -2,6 +2,10 @@
 
 import { SessionProvider } from "next-auth/react";
 
+import Header from "@/components/Header";
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return <SessionProvider>
+    <Header />
+    {children}
+  </SessionProvider>;
 }

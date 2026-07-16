@@ -7,4 +7,4 @@ export HOSTNAME="0.0.0.0"
 export DATABASE_URL="mysql://${NS_MARIADB_USER}:${NS_MARIADB_PASSWORD}@${NS_MARIADB_HOSTNAME}:${NS_MARIADB_PORT}/${NS_MARIADB_DATABASE}"
 
 # 3. Next.js を起動
-exec npm run start
+exec npx next start -p "$PORT"

@@ -8,7 +8,7 @@
 
   "scripts": {
     "dev": "next dev --turbo",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && NODE_ENV=production next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint"

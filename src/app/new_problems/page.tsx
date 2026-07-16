@@ -69,7 +69,8 @@ export default function NewProblemPage() {
 
   return (
     // 🚨 プレビューを並べるために max-w-5xl に拡張
-    <div className="max-w-5xl mx-auto p-8">
+    <main className="min-h-screen bg-slate-50 py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold mb-6 text-slate-800">新規問題作成</h1>
 
       <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -193,5 +194,7 @@ export default function NewProblemPage() {
         </button>
       </form>
     </div>
+    </main>
   );
+  
 }

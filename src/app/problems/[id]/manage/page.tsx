@@ -145,7 +145,8 @@ export default function EditProblemPage() {
 
   return (
     // 🚨 プレビューを並べるために max-w-5xl に拡張
-    <div className="max-w-5xl mx-auto p-8">
+    <main className="min-h-screen bg-slate-50 py-12">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-bold mb-6 text-slate-800">問題の編集</h1>
 
       {errorMsg && (
@@ -269,5 +270,6 @@ export default function EditProblemPage() {
         </div>
       </form>
     </div>
+    </main>
   );
 }

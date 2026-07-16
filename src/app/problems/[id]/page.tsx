@@ -308,7 +308,7 @@ export default function ProblemPage() {
                       onChange={(e) => setUserAnswer(e.target.value)}
                       disabled={status === "SUBMITTING"}
                       placeholder={!session ? "ログインすると提出できます": "例: 3579"}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:bg-slate-50"
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all disabled:bg-slate-50 text-slate-900 bg-white placeholder:text-slate-400 font-medium disabled:text-slate-500"
                     />
                   </div>
 

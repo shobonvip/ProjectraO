@@ -15,6 +15,7 @@ model User {
   submissions       Submission[]
   permittedProblems Problem[]    @relation("ProblemPermissions")
   forumPosts        ForumPost[]
+  permittedContests Contest[]    @relation("ContestPermissions")
 }
 
 model Contest {
@@ -24,6 +25,7 @@ model Contest {
   startTime       DateTime
   endTime         DateTime
   contestProblems ContestProblem[]
+  permittedUsers  User[]           @relation("ContestPermissions")
 }
 
 model ContestProblem {

@@ -5,8 +5,8 @@ import { authOptions } from "@/lib/auth";
 
 
 // レートリミット（連投制限）の秒数
-const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000;
-const MAX_SUBMISSIONS = 5; 
+const RATE_LIMIT_WINDOW_MS = 1 * 60 * 1000;
+const MAX_SUBMISSIONS = 2; 
 
 export async function POST(request: Request) {
   try {
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         : `${waitRemainingSec}秒`;
 
       return NextResponse.json(
-        { error: `この問題への提出は2分間に3回までです。あと ${timeString} 待ってください。` },
+        { error: `この問題への提出は1分間に2回までです。あと ${timeString} 待ってください。` },
         { status: 429 }
       );
     }

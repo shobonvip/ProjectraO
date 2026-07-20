@@ -97,10 +97,10 @@ export default function ProblemsListPage() {
                 <tr className="bg-slate-50/50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 pl-6 pr-4 w-16 text-center">状態</th>
                   <th className="py-4 px-4 w-24">ID</th>
-                  <th className="py-4 px-4 w-32">作問者</th> {/* 👈 ヘッダーを追加 */}
+                  <th className="py-4 px-4 w-32">作問者</th>
                   <th className="py-4 px-4">問題名</th>
                   <th className="py-4 px-6 text-right w-32">正解者数</th>
-                  <th className="py-4 px-6 text-center w-24">操作</th> {/* 👈 追加 */}
+                  <th className="py-4 px-6 text-center w-24">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">

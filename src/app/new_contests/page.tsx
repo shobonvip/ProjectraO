@@ -26,7 +26,7 @@ export default function NewContestPage() {
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [writerNames, setWriterNames] = useState(""); 
+  const [writerIds, setWriterIds] = useState(""); 
   
   const [problems, setProblems] = useState<ProblemInput[]>([
     { problemId: "", label: "A", points: 1, order: 1 }
@@ -77,9 +77,9 @@ export default function NewContestPage() {
           id: id === "" ? undefined : id, // 空欄ならPrismaにUUIDを任せる
           title,
           description,
-          startTime,
-          endTime,
-          writerNames,
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          writerIds,
           problems
         }),
       });
@@ -211,16 +211,16 @@ export default function NewContestPage() {
             </div>
           </div>
 
-          {/* 共同権限者 */}
+          {/* 共同権限者 ID */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">
-              共同権限者 (任意)
+              共同権限者 ID (任意)
             </label>
             <input
               type="text"
-              value={writerNames}
-              onChange={(e) => setWriterNames(e.target.value)}
-              placeholder="ユーザー名をカンマ区切りで入力 (例: user1, user2)"
+              value={writerIds}
+              onChange={(e) => setWriterIds(e.target.value)}
+              placeholder="IDをカンマ区切りで入力 (例: user1, user2)"
               className="w-full border border-slate-300 rounded-lg p-3 text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
             />
             <p className="text-xs text-slate-500 mt-2">※作成者自身は自動的に権限者として登録されます。</p>

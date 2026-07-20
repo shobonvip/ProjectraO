@@ -51,6 +51,27 @@ export async function GET(
     const now = new Date();
     const hasStarted = now >= contest.startTime;
 
+    if (hasStarted) {
+      const unpublishedProblemIds = contest.contestProblems
+        .filter(cp => !cp.problem.isPublished)
+        .map(cp => cp.problemId);
+
+      if (unpublishedProblemIds.length > 0) {
+        // 非同期でDBを更新する（awaitせずにバックグラウンドで走らせることでレスポンスを遅延させない）
+        prisma.problem.updateMany({
+          where: { id: { in: unpublishedProblemIds } },
+          data: { isPublished: true },
+        }).catch(err => console.error("Auto-publish failed:", err));
+        
+        // メモリ上のデータも公開済みに書き換えておく
+        contest.contestProblems.forEach(cp => {
+          if (unpublishedProblemIds.includes(cp.problemId)) {
+            cp.problem.isPublished = true;
+          }
+        });
+      }
+    }
+
     const visibleContestProblems = contest.contestProblems.filter((cp) => {
       if (isAdmin) return true;
       if (hasStarted) return true; 
@@ -143,7 +164,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, startTime, endTime, problems, writerNames } = body;
+    const { title, description, startTime, endTime, problems, writerIds } = body;
 
     // 2. 問題のバリデーション
     if (!problems || problems.length === 0) {
@@ -175,14 +196,21 @@ export async function PUT(
       }
     }
 
-    // 4. 権限者の解決
+    // 5. コンテスト権限者（ID指定）の解決
+    // 作成者（自分）は必ず含める
     const permittedUserIds = [currentUserId];
-    if (writerNames && writerNames.trim() !== "") {
-      const names = writerNames.split(",").map((n: string) => n.trim()).filter((n: string) => n !== "");
+    
+    // ※フロントエンドから送られてくる変数名も writerNames から writerIds 等に変更しておくのがおすすめです
+    if (writerIds && writerIds.trim() !== "") {
+      // カンマ区切りの文字列を配列に変換し、空白を除去
+      const ids = writerIds.split(",").map((id: string) => id.trim()).filter((id: string) => id !== "");
+      
+      // 指定されたIDがデータベースに実在するか確認（存在しないIDを紐付けようとするとエラーになるため）
       const additionalUsers = await prisma.user.findMany({
-        where: { name: { in: names } },
-        select: { id: true }
+        where: { id: { in: ids } },
+        select: { id: true } // IDが存在するかどうかだけ分かれば良いので id のみ取得
       });
+      
       additionalUsers.forEach(u => {
         if (!permittedUserIds.includes(u.id)) permittedUserIds.push(u.id);
       });

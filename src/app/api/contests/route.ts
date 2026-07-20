@@ -49,7 +49,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     // 🌟 id (カスタムID) も受け取るように追加
-    const { id, title, description, startTime, endTime, problems, writerNames } = body;
+    const {
+      id, title, description, startTime, endTime,
+       problems, writerIds 
+      } = body;
 
     // 🌟 1. 問題が1つも追加されていない場合のエラーチェック
     if (!problems || problems.length === 0) {
@@ -90,15 +93,22 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. コンテスト権限者（writerNames）の解決
+
+    // 5. コンテスト権限者（ID指定）の解決
     // 作成者（自分）は必ず含める
     const permittedUserIds = [currentUserId];
-    if (writerNames && writerNames.trim() !== "") {
-      const names = writerNames.split(",").map((n: string) => n.trim()).filter((n: string) => n !== "");
+    
+    // ※フロントエンドから送られてくる変数名も writerNames から writerIds 等に変更しておくのがおすすめです
+    if (writerIds && writerIds.trim() !== "") {
+      // カンマ区切りの文字列を配列に変換し、空白を除去
+      const ids = writerIds.split(",").map((id: string) => id.trim()).filter((id: string) => id !== "");
+      
+      // 指定されたIDがデータベースに実在するか確認（存在しないIDを紐付けようとするとエラーになるため）
       const additionalUsers = await prisma.user.findMany({
-        where: { name: { in: names } },
-        select: { id: true, name: true }
+        where: { id: { in: ids } },
+        select: { id: true } // IDが存在するかどうかだけ分かれば良いので id のみ取得
       });
+      
       additionalUsers.forEach(u => {
         if (!permittedUserIds.includes(u.id)) permittedUserIds.push(u.id);
       });

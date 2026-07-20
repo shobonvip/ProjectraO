@@ -27,7 +27,7 @@ export default function EditContestPage() {
   const [description, setDescription] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [writerNames, setWriterNames] = useState(""); 
+  const [writerIds, setWriterIds] = useState(""); 
   
   const [problems, setProblems] = useState<ProblemInput[]>([]);
 
@@ -58,8 +58,8 @@ export default function EditContestPage() {
         setEndTime(formatForInput(data.contest.endTime));
         
         // Writer名（自分以外もカンマ区切りで表示）
-        if (data.contest.writerNames) {
-          setWriterNames(data.contest.writerNames.join(", "));
+        if (data.contest.writerIds) {
+          setWriterIds(data.contest.writerIds.join(", "));
         }
 
         // 問題リストの復元
@@ -131,9 +131,9 @@ export default function EditContestPage() {
         body: JSON.stringify({
           title,
           description,
-          startTime,
-          endTime,
-          writerNames,
+          startTime: new Date(startTime).toISOString(),
+          endTime: new Date(endTime).toISOString(),
+          writerIds,
           problems
         }),
       });
@@ -262,8 +262,8 @@ export default function EditContestPage() {
             <label className="block text-sm font-bold text-slate-700 mb-2">共同権限者</label>
             <input
               type="text"
-              value={writerNames}
-              onChange={(e) => setWriterNames(e.target.value)}
+              value={writerIds}
+              onChange={(e) => setWriterIds(e.target.value)}
               placeholder="カンマ区切りで入力 (例: user1, user2)"
               className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-indigo-500"
             />

@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // パスは適宜調整してください
-
+// 🚨 修正: クライアントコンポーネントでは getServerSession は使えないため削除し、useSession に変更しました
+import { useSession } from "next-auth/react";
 
 interface ContestListItem {
   id: string;
@@ -15,11 +14,13 @@ interface ContestListItem {
 }
 
 export default function ContestsListPage() {
+  // 🌟 追加: ログイン状態を取得
+  const { data: session } = useSession();
+
   const [contests, setContests] = useState<ContestListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
-  // 🌟 Hydrationエラー防止 & リアルタイムステータス更新用の現在時刻
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -40,7 +41,6 @@ export default function ContestsListPage() {
     fetchContests();
   }, []);
 
-  // 1秒ごとに現在時刻を更新するタイマー
   useEffect(() => {
     setCurrentTime(new Date());
     const timerId = setInterval(() => {
@@ -70,12 +70,12 @@ export default function ContestsListPage() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("ja-JP", {
+      timeZone: "Asia/Tokyo", // 🌟 追加: 念のためフロント側でも日本時間を強制
       year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit"
     });
   };
 
-  // 期間（分）を計算する関数
   const getDurationMinutes = (start: string, end: string) => {
     const diffMs = new Date(end).getTime() - new Date(start).getTime();
     return Math.floor(diffMs / (1000 * 60));
@@ -100,6 +100,16 @@ export default function ContestsListPage() {
             >
               ← トップへ戻る
             </Link>
+
+            {/* 🌟 追加: ログイン中のみ表示されるコンテスト新規作成ボタン */}
+            {session && (
+              <Link
+                href="/new_contests"
+                className="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-sm hover:shadow"
+              >
+                ＋ 新規コンテスト作成
+              </Link>
+            )}
           </div>
         </div>
 
@@ -128,14 +138,13 @@ export default function ContestsListPage() {
                     const startTime = new Date(contest.startTime);
                     const endTime = new Date(contest.endTime);
                     
-                    // ステータスの判定
                     let statusBadge;
                     let rowOpacity = "";
                     if (currentTime < startTime) {
                       statusBadge = <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-bold text-xs border border-slate-200">開始前</span>;
                     } else if (currentTime > endTime) {
                       statusBadge = <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-bold text-xs border border-slate-200">終了</span>;
-                      rowOpacity = "opacity-70 bg-slate-50/30"; // 終了したものは少し薄くする
+                      rowOpacity = "opacity-70 bg-slate-50/30";
                     } else {
                       statusBadge = <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 animate-pulse shadow-sm">開催中</span>;
                     }
@@ -145,12 +154,9 @@ export default function ContestsListPage() {
                         key={contest.id} 
                         className={`hover:bg-slate-50 transition-colors ${rowOpacity}`}
                       >
-                        {/* 状態 */}
                         <td className="py-4 pl-6 pr-4 text-center whitespace-nowrap">
                           {statusBadge}
                         </td>
-
-                        {/* コンテスト名 */}
                         <td className="py-4 px-4 font-semibold">
                           <Link 
                             href={`/contests/${contest.id}`}
@@ -159,18 +165,12 @@ export default function ContestsListPage() {
                             {contest.title}
                           </Link>
                         </td>
-                        
-                        {/* 開始日時 */}
                         <td className="py-4 px-4 font-mono text-slate-600 whitespace-nowrap">
                           {formatDate(contest.startTime)}
                         </td>
-
-                        {/* 開催時間（分） */}
                         <td className="py-4 px-4 text-center font-mono text-slate-500 whitespace-nowrap">
                           {getDurationMinutes(contest.startTime, contest.endTime)} 分
                         </td>
-
-                        {/* 問題数 */}
                         <td className="py-4 px-6 text-center font-mono text-slate-500">
                           {contest.problemCount}
                         </td>
@@ -187,4 +187,3 @@ export default function ContestsListPage() {
     </main>
   );
 }
-

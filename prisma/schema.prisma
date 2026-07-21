@@ -21,7 +21,7 @@ model User {
 model Contest {
   id              String           @id @default(uuid())
   title           String
-  description     String?
+  description     String?          @db.Text
   startTime       DateTime
   endTime         DateTime
   contestProblems ContestProblem[]
@@ -44,8 +44,8 @@ model ContestProblem {
 model Problem {
   id              String           @id @default(uuid())
   title           String
-  statement       String
-  answer          String           @default("default_answer")
+  statement       String           @db.Text
+  answer          String
   isPublished     Boolean          @default(false)
   contestProblems ContestProblem[]
   submissions     Submission[]
@@ -81,7 +81,7 @@ enum Role {
 
 model ForumPost {
   id        String   @id @default(uuid())
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id])

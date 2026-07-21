@@ -111,6 +111,7 @@ export async function GET(
         description: contest.description,
         startTime: contest.startTime,
         endTime: contest.endTime,
+        writerIds: contest.permittedUsers.map((u) => u.id),
         writerNames: contest.permittedUsers.map((u) => u.name),
         // 🌟 追加: 管理者、または自分が権限者リストに含まれているか
         canEdit: isAdmin || (currentUserId ? contest.permittedUsers.some((u) => u.id === currentUserId) : false),

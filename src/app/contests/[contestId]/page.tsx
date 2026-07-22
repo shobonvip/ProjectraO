@@ -232,12 +232,12 @@ export default function ContestDetailPage() {
                         )}
                       </td>
                       <td className="py-4 px-4 font-mono font-bold text-center text-lg">
-                        <Link href={`/contests/${contestId}/${problem.id}`} className="text-indigo-600 hover:text-indigo-800 hover:underline transition-all">
+                        <Link href={`/contests/${contestId}/${encodeURIComponent(problem.id)}`} className="text-indigo-600 hover:text-indigo-800 hover:underline transition-all">
                           {problem.label}
                         </Link>
                       </td>
                       <td className="py-4 px-4 font-semibold">
-                        <Link href={`/contests/${contestId}/${problem.id}`} className="text-slate-800 hover:text-indigo-700 hover:underline decoration-indigo-300 underline-offset-4 transition-all">
+                        <Link href={`/contests/${contestId}/${encodeURIComponent(problem.id)}`} className="text-slate-800 hover:text-indigo-700 hover:underline decoration-indigo-300 underline-offset-4 transition-all">
                           {problem.title}
                         </Link>
                         {!problem.isPublished && (

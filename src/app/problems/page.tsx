@@ -149,7 +149,7 @@ export default function ProblemsListPage() {
                       {/* 問題名 */}
                       <td className="py-4 px-4 font-semibold">
                         <Link 
-                          href={`/problems/${problem.id}`}
+                          href={`/problems/${encodeURIComponent(problem.id)}`}
                           className="text-indigo-600 hover:text-indigo-800 hover:underline decoration-indigo-300 underline-offset-4 transition-all"
                         >
                           {problem.title}
@@ -170,7 +170,7 @@ export default function ProblemsListPage() {
                       <td className="py-4 px-6 text-center">
                         {problem.canEdit && (
                           <Link
-                            href={`/problems/${problem.id}/manage`}
+                            href={`/problems/${encodeURIComponent(problem.id)}/manage`}
                             className="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-md text-xs font-bold transition-colors shadow-sm"
                           >
                             編集

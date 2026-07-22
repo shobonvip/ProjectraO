@@ -292,7 +292,7 @@ export default function ProblemViewer({ problemId, contestId, backLink }: Proble
                 {/* 追加: 編集ボタン（権限がある場合のみ表示） */}
                 {problem.canEdit && (
                   <Link
-                    href={`/problems/${problem.id}/manage`}
+                    href={`/problems/${encodeURIComponent(problem.id)}/manage`}
                     className="mt-2 inline-flex items-center justify-center px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-colors shadow-sm"
                   >
                     編集する
